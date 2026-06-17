@@ -67,3 +67,7 @@ app.delete("/delete-data/:id", async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+// Add this route to your server.js
+app.get("/", (req, res) => {
+    res.send("rendersmartstudy API is live and working!");
+});
