@@ -1,11 +1,11 @@
 {
-  "name": "my-app",
+  "name": "smart-study-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "login-script.js",
+  "description": "Backend API for Smart Study Assistant",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
