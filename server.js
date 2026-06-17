@@ -13,13 +13,12 @@ app.use(express.json());
 const DB_URI = process.env.DB_URI;
 
 mongoose.connect(DB_URI)
-  .then(() => console.log("Connected to MongoDB Atlas"))
-  .catch(err => console.error("Database connection error:", err));
+  .then(() => console.log("✅ Connected to MongoDB Atlas"))
+  .catch(err => console.error("❌ Database connection error:", err));
 
 // --- SCHEMA & MODEL ---
-// A flexible schema that holds all possible fields for your different data types
 const StudySchema = new mongoose.Schema({
-    category: String, // Tracks if it's a 'tasks', 'notes', 'resources', or 'flashcards'
+    category: String, 
     title: String,
     content: String,
     url: String,
@@ -31,8 +30,6 @@ const StudySchema = new mongoose.Schema({
     date: { type: Date, default: Date.now }
 });
 
-// This automatically copies MongoDB's internal '_id' to a standard 'id' 
-// so your frontend script.js buttons work perfectly without changing any HTML.
 StudySchema.set('toJSON', {
     transform: (doc, ret) => {
         ret.id = ret._id;
@@ -52,25 +49,38 @@ app.get("/", (req, res) => {
     });
 });
 
-// 2. READ (Get data based on type: /tasks, /notes, /resources, /flashcards)
+// 2. READ (Get data based on type)
 app.get("/:type", async (req, res) => {
+    // Stop the browser from querying the database for a favicon
+    if (req.params.type === 'favicon.ico') return res.status(204).end();
+
     try {
-        console.log("Fetching category:", req.params.type); // Check your Render logs!
+        // Safety Check: Make sure database is actually connected before querying
+        if (mongoose.connection.readyState !== 1) {
+            console.warn("Database booting up, delaying request...");
+            return res.status(503).json({ message: "Database starting up" });
+        }
+
+        console.log("Fetching category:", req.params.type);
         const data = await StudyModel.find({ category: req.params.type });
-        res.json(data);
+        res.json(data || []); // Always return an array, even if empty
     } catch (err) {
-        console.error("Database error:", err); // This will tell us the real reason for the 500
+        console.error(`Database error on ${req.params.type}:`, err);
         res.status(500).json({ message: "Error fetching data" });
     }
 });
+
 // 3. CREATE (Save new data)
 app.post("/:type", async (req, res) => {
     try {
-        // Automatically tags the data with the correct category from the URL
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({ message: "Database not connected" });
+        }
         const newData = new StudyModel({ ...req.body, category: req.params.type });
         await newData.save();
         res.json({ message: "Data saved successfully!" });
     } catch (err) {
+        console.error("Save error:", err);
         res.status(500).json({ message: "Error saving data" });
     }
 });
