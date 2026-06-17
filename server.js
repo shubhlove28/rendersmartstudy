@@ -2,52 +2,80 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const app = express();
-const PORT = 3000;
+
+// Use the port Render assigns, or default to 3000 locally
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
-// Database connection
+// --- DATABASE CONNECTION ---
 const DB_URI = process.env.DB_URI;
 
 mongoose.connect(DB_URI)
   .then(() => console.log("Connected to MongoDB Atlas"))
   .catch(err => console.error("Database connection error:", err));
 
-// Schema and Model
+// --- SCHEMA & MODEL ---
+// A flexible schema that holds all possible fields for your different data types
 const StudySchema = new mongoose.Schema({
-    task: String,
-    status: String,
+    category: String, // Tracks if it's a 'tasks', 'notes', 'resources', or 'flashcards'
+    title: String,
+    content: String,
+    url: String,
+    due: String,
+    priority: String,
+    done: Boolean,
+    question: String,
+    answer: String,
     date: { type: Date, default: Date.now }
+});
+
+// This automatically copies MongoDB's internal '_id' to a standard 'id' 
+// so your frontend script.js buttons work perfectly without changing any HTML.
+StudySchema.set('toJSON', {
+    transform: (doc, ret) => {
+        ret.id = ret._id;
+        return ret;
+    }
 });
 
 const StudyModel = mongoose.model("StudyData", StudySchema);
 
-// --- FULL CRUD ROUTES ---
+// --- ROUTES ---
 
-// CREATE
-app.post("/save-data", async (req, res) => {
-    try {
-        const newData = new StudyModel(req.body);
-        await newData.save();
-        res.json({ message: "Data saved to cloud!" });
-    } catch (err) {
-        res.status(500).json({ message: "Error saving data" });
-    }
+// 1. HEALTH CHECK (Homepage)
+app.get("/", (req, res) => {
+    res.json({
+        status: "Online",
+        message: "Smart Study Assistant API is live and working!"
+    });
 });
 
-// READ
-app.get("/get-data", async (req, res) => {
+// 2. READ (Get data based on type: /tasks, /notes, /resources, /flashcards)
+app.get("/:type", async (req, res) => {
     try {
-        const data = await StudyModel.find();
+        const data = await StudyModel.find({ category: req.params.type });
         res.json(data);
     } catch (err) {
         res.status(500).json({ message: "Error fetching data" });
     }
 });
 
-// UPDATE
-app.put("/update-data/:id", async (req, res) => {
+// 3. CREATE (Save new data)
+app.post("/:type", async (req, res) => {
+    try {
+        // Automatically tags the data with the correct category from the URL
+        const newData = new StudyModel({ ...req.body, category: req.params.type });
+        await newData.save();
+        res.json({ message: "Data saved successfully!" });
+    } catch (err) {
+        res.status(500).json({ message: "Error saving data" });
+    }
+});
+
+// 4. UPDATE (Used for checking off tasks)
+app.put("/:type/:id", async (req, res) => {
     try {
         const updatedData = await StudyModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.json({ message: "Data updated successfully!", data: updatedData });
@@ -56,8 +84,8 @@ app.put("/update-data/:id", async (req, res) => {
     }
 });
 
-// DELETE
-app.delete("/delete-data/:id", async (req, res) => {
+// 5. DELETE (Remove tasks or flashcards)
+app.delete("/:type/:id", async (req, res) => {
     try {
         await StudyModel.findByIdAndDelete(req.params.id);
         res.json({ message: "Data deleted from cloud!" });
@@ -66,8 +94,5 @@ app.delete("/delete-data/:id", async (req, res) => {
     }
 });
 
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
-// Add this route to your server.js
-app.get("/", (req, res) => {
-    res.send("rendersmartstudy API is live and working!");
-});
+// --- START SERVER ---
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
