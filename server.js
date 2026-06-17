@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // Database connection
-const DB_URI = "mongodb+srv://bigpacket819_db_user:<db_password>@cluster0.cna6htc.mongodb.net/?appName=Cluster0";
+const DB_URI = process.env.DB_URI;
 
 mongoose.connect(DB_URI)
   .then(() => console.log("Connected to MongoDB Atlas"))
