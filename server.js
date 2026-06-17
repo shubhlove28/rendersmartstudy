@@ -55,13 +55,14 @@ app.get("/", (req, res) => {
 // 2. READ (Get data based on type: /tasks, /notes, /resources, /flashcards)
 app.get("/:type", async (req, res) => {
     try {
+        console.log("Fetching category:", req.params.type); // Check your Render logs!
         const data = await StudyModel.find({ category: req.params.type });
         res.json(data);
     } catch (err) {
+        console.error("Database error:", err); // This will tell us the real reason for the 500
         res.status(500).json({ message: "Error fetching data" });
     }
 });
-
 // 3. CREATE (Save new data)
 app.post("/:type", async (req, res) => {
     try {
